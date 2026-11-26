@@ -1,0 +1,38 @@
+scripts\run_all.bat "D:\PG\Semester 3\R project\JATAYU_Dataset\exp_2.mp4"
+
+scripts\stop_all.bat
+
+
+Prerequisites: Clean Database & Start Infrastructure
+Run these once in any terminal to wipe previous stale counts and ensure Docker services are up:
+
+cd "D:\PG\Semester 3\R project"
+docker-compose up -d
+docker exec -i jatayu_postgres psql -U jatayu_user -d jatayu_db -c "TRUNCATE TABLE window_counts;"
+
+python spark/stream_aggregate.py
+python scripts/video_server.py
+python detector/detect_track.py
+python producer/replay_producer.py --source "JATAYU_Dataset\exp.mp4" --fps 30
+
+
+
+
+
+Switch detect_track.py Back to Your Trained Weights
+Because you are now evaluating actual JATAYU images (Indian aerial traffic with auto-rickshaws, tractor-trolleys, etc.), you must load your trained model in detector/detect_track.py:
+
+Python
+# In detector/detect_track.py around line 24:
+model = YOLO("runs/jatayu_model/weights/best.pt")
+3. Clear Stale Postgres Rows
+Reset the database so previous counts don't mix into your test run:
+
+DOS
+docker exec -i jatayu_postgres psql -U jatayu_user -d jatayu_db -c "TRUNCATE TABLE window_counts;"
+
+python spark/stream_aggregate.py
+python scripts/video_server.py
+python detector/detect_track.py
+python producer/replay_producer.py --source "D:\PG\Semester 3\R project\JATAYU_Dataset\test\images" --fps 15
+Rscript -e "shiny::runApp('r/app.R', port = 8080, host = '0.0.0.0')"

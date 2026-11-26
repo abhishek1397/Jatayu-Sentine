@@ -1,0 +1,58 @@
+When presenting the engineering challenges you solved to an interviewer, frame them using the **STAR format** (Situation, Task, Action, Result). This demonstrates deep system-level debugging, hardware awareness, and production engineering skills across distributed systems and machine learning.
+
+Here are the 5 core problems you tackled, structured directly for an interview:
+
+---
+
+### 1. PyTorch 2.6 Weights Unpickling Security Restriction (`weights_only=True`)
+
+* **Problem / Situation:** Loading pre-trained and fine-tuned checkpoints (`yolov8m.pt` and `best.pt`) crashed with a `_pickle.UnpicklingError`. PyTorch 2.6 changed the default behavior of `torch.load` to `weights_only=True`, rejecting Ultralytics' internal `DetectionModel` class as untrusted.
+* **Engineering Solution:** Implemented a targeted monkey-patch at the script entrypoint wrapping `torch.load` to default `weights_only=False` for local trusted model weights.
+* **Interviewer Takeaway:** Shows you understand deep-learning framework internals, Python runtime internals, and modern framework migration hurdles.
+
+---
+
+### 2. PyTorch CUDA / Hardware Acceleration Mismatch
+
+* **Problem / Situation:** Model training initially defaulted to the CPU (`torch-2.x+cpu`), failing with `Invalid CUDA device=0 requested` despite having a dedicated NVIDIA RTX 5060 GPU.
+* **Engineering Solution:** Diagnosed that the default Conda installation pulled a CPU-only wheel without CUDA binaries. Purged the build and installed the explicit CUDA 12.4 pre-built wheels (`--index-url [https://download.pytorch.org/whl/cu124](https://download.pytorch.org/whl/cu124)`), bringing native GPU acceleration and tensor core execution online.
+* **Interviewer Takeaway:** Demonstrates hands-on environment provisioning and GPU driver/CUDA stack troubleshooting.
+
+---
+
+### 3. Compute Scaling & Training Bottleneck Resolution
+
+* **Problem / Situation:** Fine-tuning YOLOv8 Medium at a 1280px resolution on ~29,000 images resulted in ~45 minutes per epoch (~37 hours total), exceeding the development iteration budget.
+* **Engineering Solution:** Profiled the pipeline and refactored the design to a staged iterative approach:
+* Downscaled the architecture to **YOLOv8 Nano (`yolov8n`)** at **640px** image size and batch size 16, cutting per-epoch runtime to ~6 minutes.
+* Executed a fast run (2–3 epochs) to validate the end-to-end data contracts and produce a functional `best.pt`.
+* Decoupled model weights from downstream services (Kafka/Spark/Shiny) so the model could later be retrained overnight to 50+ epochs and hot-swapped without modifying application code.
+
+
+* **Interviewer Takeaway:** Shows practical trade-off decisions between training accuracy, iteration velocity, and architectural decoupling in real-world ML systems.
+
+---
+
+### 4. Windows IPv6 Dual-Stack Resolution & Docker Kafka Networking
+
+* **Problem / Situation:** The Kafka producer and detector scripts failed to connect to the broker with `Connect to ipv6#[::1]:9092 failed: Unknown error` and dropped connections.
+* **Engineering Solution:**
+* Identified that Windows dual-stack socket networking resolved `localhost` to IPv6 `::1`, while Docker Desktop forwarded ports primarily on IPv4.
+* Explicitly configured Kafka listeners inside Docker (`0.0.0.0:9092`) and updated client configurations to explicitly bind to IPv4 (`127.0.0.1:9092`).
+* Reconfigured broker and topic settings (`max.message.bytes=5242880`) to handle large compressed image buffers up to 5 MB without dropping packets.
+
+
+* **Interviewer Takeaway:** Highlights solid understanding of container networking, TCP/IP socket behavior, and message broker tuning.
+
+---
+
+### 5. Serialization Schema Failure (NumPy `float32` vs Native Python Types)
+
+* **Problem / Situation:** The real-time detector crashed during high-throughput inference with `TypeError: Object of type float32 is not JSON serializable` when trying to publish bounding box telemetry to Kafka (`drone.detections`).
+* **Engineering Solution:** Identified that PyTorch/NumPy array slicing (`boxes.xywhn`) yields NumPy scalar objects (`np.float32`), which standard Python `round()` preserves. Refactored the serialization layer to explicitly cast bounding boxes and confidence scores to standard Python primitives (`round(float(c), 3)`) before passing to `json.dumps()`.
+* **Interviewer Takeaway:** Shows attention to data serialization boundaries between high-performance ML tensor engines and downstream event-driven microservices.
+
+
+
+
+6 If there is an index offset between the dataset yaml and the model's internal classes, regular cars and vans will be labeled as tractor_trolley.
