@@ -1,5 +1,8 @@
 # Jatayu-Sentinel: Real-Time Aerial Traffic Surveillance & Bayesian Anomaly Detection
 
+<img width="1376" height="768" alt="watermarked_img_15073662595301963646" src="https://github.com/user-attachments/assets/740cb49a-9c7f-4c80-943b-487b9ec94028" />
+
+
 An end-to-end, low-latency distributed data pipeline for real-time Unmanned Aerial Vehicle (UAV) traffic monitoring, multi-object tracking, and probabilistic anomaly detection. 
 
 Achieving an end-to-end inference-to-storage latency of **35–50 ms**, Jatayu-Sentinel bridges lightweight edge computer vision with fault-tolerant stream processing and interpretable Bayesian statistics to analyze heterogeneous, non-lane-based aerial traffic feeds.
